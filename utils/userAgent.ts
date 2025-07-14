@@ -1,6 +1,8 @@
 export function generateUserAgent() {
-  const randomHex = [...Array(16)]
-    .map(() => Math.floor(Math.random() * 16).toString(16))
-    .join("");
-  return `Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.4 Mobile/15E148 Safari/604.2 ${randomHex}`;
+  const iosVersion = Math.floor(Math.random() * 5) + 9;
+  const safariVersion = Math.floor(Math.random() * 5) + 600;
+  const webkitVersion = Math.floor(Math.random() * 700) + 500;
+  const osPlatform = `CPU iPhone OS ${iosVersion}_${Math.floor(Math.random() * 10)} like Mac OS X) AppleWebKit/${webkitVersion}.60 (KHTML, like Gecko) Version/${safariVersion}.0 Mobile/15E148 Safari/${webkitVersion}.60`;
+
+  return `Mozilla/5.0 (${osPlatform})`;
 }

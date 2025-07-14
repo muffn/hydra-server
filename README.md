@@ -108,13 +108,14 @@ Navigate to Settings => Advanced => Use Custom Server. Enable it and enter the p
 
 If running on a debian distro the following commands allow the server to auto run on startup:
 
-
 Create a systemd service file
+
 ```bash
 sudo nano /etc/systemd/system/hydra-server.service
 ```
 
 Enter the following code into the service:
+
 ```bash
 [Unit]
 Description=Hydra Server Bun Script
@@ -133,12 +134,14 @@ WantedBy=multi-user.target
 ```
 
 Then reload and enable the service:
+
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable hydra-server.service
 ```
 
 Then run the following to start and check the service:
+
 ```bash
 sudo systemctl start hydra-server.service
 sudo systemctl status hydra-server.service
