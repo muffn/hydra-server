@@ -1,5 +1,5 @@
 import { db } from "../../db/db";
-import { and, eq, isNotNull, isNull, SQL } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, sql, SQL } from "drizzle-orm";
 import { tasks } from "../../db/schema";
 import { corsHeaders } from "../../middleware/cors";
 import { authenticateRequest } from "../../middleware/auth";
@@ -70,29 +70,19 @@ export async function getTaskStats(req: Request) {
   if (!(await authenticateRequest(req))) {
     return new Response("Unauthorized", { status: 401, headers: corsHeaders });
   }
-  const totalCount = await db.$count(tasks);
-  const completedCount = await db.$count(tasks, isNotNull(tasks.completedAt));
-  const failedCount = await db.$count(tasks, isNotNull(tasks.failedAt));
-  const pendingCount = await db.$count(tasks, isNull(tasks.startedAt));
-  const inProgressCount = await db.$count(
-    tasks,
-    and(
-      isNotNull(tasks.startedAt),
-      isNull(tasks.completedAt),
-      isNull(tasks.failedAt),
-    ),
-  );
+  const [row] = await db
+    .select({
+      total: sql<number>`count(*)`,
+      completed: sql<number>`sum(case when ${tasks.completedAt} is not null then 1 else 0 end)`,
+      failed: sql<number>`sum(case when ${tasks.failedAt} is not null then 1 else 0 end)`,
+      pending: sql<number>`sum(case when ${tasks.startedAt} is null then 1 else 0 end)`,
+      inProgress: sql<number>`sum(case when ${tasks.startedAt} is not null and ${tasks.completedAt} is null and ${tasks.failedAt} is null then 1 else 0 end)`,
+    })
+    .from(tasks);
 
-  return Response.json(
-    {
-      total: totalCount,
-      completed: completedCount,
-      failed: failedCount,
-      pending: pendingCount,
-      inProgress: inProgressCount,
-    },
-    { headers: corsHeaders },
-  );
+  if (!row) throw new Error("getTaskStats failed");
+
+  return Response.json(row, { headers: corsHeaders });
 }
 
 export async function getTaskById(req: BunRequest<"/api/tasks/:id">) {
