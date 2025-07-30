@@ -4,6 +4,7 @@ import { customers, redditAccounts } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { decrypt } from "../utils/crypto";
 import PushNotifications from "../services/PushNotifications";
+import Proxy from "../services/Proxy";
 
 type InboxItem = CommentReply | Message;
 
@@ -52,7 +53,7 @@ export default class CheckForMessages extends Task<
 
     const session = JSON.parse(decrypt(redditAccount.session));
 
-    const response = await fetch(
+    const response = await Proxy.fetch(
       "https://www.reddit.com/message/inbox.json?limit=10",
       {
         headers: {
