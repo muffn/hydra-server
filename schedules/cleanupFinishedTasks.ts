@@ -2,7 +2,7 @@ import { db } from "../db/db";
 import { tasks } from "../db/schema";
 import { isNotNull, or, inArray } from "drizzle-orm";
 
-const MAX_FINISHED_TASKS = 1_000_000;
+const MAX_FINISHED_TASKS = 100_000;
 const BATCH_DELETION_SIZE = 10_000;
 
 export default function cleanupFinishedTasks() {
