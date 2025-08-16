@@ -7,8 +7,8 @@ export interface Usage {
   completionTokens: number;
 }
 
-const INPUT_TOKEN_COST = 0.0000015;
-const OUTPUT_TOKEN_COST = 0.000002;
+const INPUT_TOKEN_COST = 0.05 / 1_000_000;
+const OUTPUT_TOKEN_COST = 0.08 / 1_000_000;
 const MONTHLY_COST_LIMIT = 2.0;
 
 export class AIUsage {
