@@ -31,7 +31,10 @@ const scheduleTasks = async () => {
 
 export default async function checkForMessagesSchedule() {
   scheduleTasks();
-  setInterval(() => {
-    scheduleTasks();
-  }, 1_000 * 60);
+  setInterval(
+    () => {
+      scheduleTasks();
+    },
+    1_000 * 60 * 2,
+  ); // 2 minutes
 }

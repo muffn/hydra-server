@@ -53,7 +53,7 @@ export default class CheckForMessages extends Task<
 
     const session = JSON.parse(decrypt(redditAccount.session));
 
-    const response = await Proxy.fetch(
+    const { response, markProxyAsBad } = await Proxy.fetch(
       "https://www.reddit.com/message/inbox.json?limit=10",
       {
         headers: {
@@ -62,8 +62,30 @@ export default class CheckForMessages extends Task<
       },
     );
 
+    if (response.status >= 400) {
+      markProxyAsBad?.();
+      throw new Error(
+        `Failed to fetch inbox: [${response.status}] ${response.statusText}`,
+      );
+    }
+
     //eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let inboxItems: InboxItem[] = ((await response.json()) as any).data.children
+    let json: any;
+    try {
+      json = await response.json();
+    } catch (_error) {
+      markProxyAsBad?.();
+      throw new Error(
+        `Failed to parse inbox. Server returned non-JSON response.`,
+      );
+    }
+
+    if (!json?.data?.children) {
+      // Empty inbox
+      return;
+    }
+
+    let inboxItems: InboxItem[] = json.data.children
       .map((child: unknown) => this.formatInboxItem(child))
       .filter((item: InboxItem | undefined) => item !== undefined);
 
