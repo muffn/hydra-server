@@ -24,13 +24,14 @@ class Discord {
     limit: number,
     message: string,
   ) {
-    if (!this.messageLastSentAt[key]) {
+    const lastSentAt = this.messageLastSentAt[key];
+    if (!lastSentAt) {
       this.messageLastSentAt[key] = Date.now();
     }
-    if (Date.now() - this.messageLastSentAt[key] < limit) {
+    if (Date.now() - (lastSentAt ?? 0) < limit) {
       return;
     }
-    this.messageLastSentAt[key] = Date.now();
+    this.messageLastSentAt[key] = Date.now(); // Update the last sent time
     await this.sendMessage(message);
   }
 }
