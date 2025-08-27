@@ -33,7 +33,7 @@ export default class Proxy {
 
   static async getProxies() {
     if (
-      this.proxies.length > 0 &&
+      this.proxies.length + Object.keys(this.badProxies).length > 0 &&
       Date.now() - this.lastUpdateAt < PROXY_UPDATE_INTERVAL
     )
       return this.proxies;
@@ -59,24 +59,30 @@ export default class Proxy {
     if (!process.env.WEBSHARE_TOKEN) return undefined;
     await this.getProxies();
     this.restoreBadProxies();
+    if (this.proxies.length === 0) {
+      throw new Error("No good proxies available");
+    }
     return this.proxies[Math.floor(Math.random() * this.proxies.length)];
   }
 
   static async handleBadProxy(proxy: string) {
     this.proxies = this.proxies.filter((p) => p !== proxy);
     this.badProxies[proxy] = Date.now();
+    const badProxiesLength = Object.keys(this.badProxies).length;
+    const totalProxiesLength = this.proxies.length + badProxiesLength;
+    console.log(`${badProxiesLength}/${totalProxiesLength} bad proxies`);
   }
 
   static restoreBadProxies() {
     const goodProxiesLength = this.proxies.length;
     const badProxiesLength = Object.keys(this.badProxies).length;
     const totalProxiesLength = goodProxiesLength + badProxiesLength;
-    console.log(`${badProxiesLength}/${totalProxiesLength} bad proxies`);
-    if (badProxiesLength / totalProxiesLength < 0.1) {
+    const fractionBad = badProxiesLength / totalProxiesLength;
+    if (fractionBad < 0.1) {
       // If less than 10% of proxies are bad, don't bother restoring them
       return;
     }
-    if (badProxiesLength / totalProxiesLength > 0.25) {
+    if (fractionBad > 0.25) {
       // Notify
       Discord.sendMessageWithLimit(
         "proxy-bad",
@@ -84,8 +90,9 @@ export default class Proxy {
         `${((badProxiesLength / totalProxiesLength) * 100).toFixed(2)}% of proxies have gone bad.`,
       );
     }
+    const now = Date.now();
     for (const [proxy, markedBadAt] of Object.entries(this.badProxies)) {
-      if (Date.now() - markedBadAt > RETRY_BAD_PROXY_INTERVAL) {
+      if (now - markedBadAt > RETRY_BAD_PROXY_INTERVAL) {
         this.proxies.push(proxy);
         delete this.badProxies[proxy];
       }
