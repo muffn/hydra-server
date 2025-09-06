@@ -89,6 +89,11 @@ export async function filterPosts(req: Request) {
         content: makeUserPrompt(filterDescription, posts),
       },
     ],
+    providerOptions: {
+      groq: {
+        structuredOutputs: false,
+      },
+    },
   });
 
   await AIUsage.trackUsage(customerId, MODEL_ID, usage);
