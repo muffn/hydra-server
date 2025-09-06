@@ -26,6 +26,8 @@ const makeUserPrompt = (
   Text: ${postText}
 `;
 
+const MODEL_ID = "openai/gpt-oss-20b";
+
 export async function summarizePostDetails(req: Request) {
   const body = await req.json();
   const { customerId, subreddit, postTitle, postAuthor, postText } =
@@ -42,8 +44,8 @@ export async function summarizePostDetails(req: Request) {
 
   // Generate the summary using Groq
   const { text, usage } = await generateText({
-    model: groq("llama-3.1-8b-instant"),
-    maxTokens: 1_000,
+    model: groq(MODEL_ID),
+    maxOutputTokens: 1_000,
     messages: [
       {
         role: "system",
@@ -56,7 +58,7 @@ export async function summarizePostDetails(req: Request) {
     ],
   });
 
-  await AIUsage.trackUsage(customerId, usage);
+  await AIUsage.trackUsage(customerId, MODEL_ID, usage);
 
   return new Response(text, {
     headers: { "Content-Type": "application/json" },

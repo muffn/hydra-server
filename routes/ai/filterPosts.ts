@@ -58,6 +58,8 @@ Text: ${post.text}
   .join("\n")}
 `;
 
+const MODEL_ID = "llama-3.1-8b-instant";
+
 export async function filterPosts(req: Request) {
   const body = await req.json();
   const { customerId, filterDescription, posts } =
@@ -74,8 +76,8 @@ export async function filterPosts(req: Request) {
 
   // Generate the filtered posts using Groq
   const { object, usage } = await generateObject({
-    model: groq("llama-3.1-8b-instant"),
-    maxTokens: 1_000,
+    model: groq(MODEL_ID),
+    maxOutputTokens: 1_000,
     schema: responseSchema,
     messages: [
       {
@@ -89,7 +91,7 @@ export async function filterPosts(req: Request) {
     ],
   });
 
-  await AIUsage.trackUsage(customerId, usage);
+  await AIUsage.trackUsage(customerId, MODEL_ID, usage);
 
   // Make sure the response is a mapping of post IDs to boolean values
   const filteredPosts = posts.reduce(

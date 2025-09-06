@@ -1,3 +1,4 @@
+import type { LanguageModelUsage } from "ai";
 import { db } from "../db/db";
 import { aiRequests } from "../db/schema";
 import { and, eq, sql } from "drizzle-orm";
@@ -7,13 +8,33 @@ export interface Usage {
   completionTokens: number;
 }
 
-const INPUT_TOKEN_COST = 0.05 / 1_000_000;
-const OUTPUT_TOKEN_COST = 0.08 / 1_000_000;
+type ModelId = keyof typeof MODEL_COSTS;
+
+const MODEL_COSTS = {
+  "llama-3.1-8b-instant": {
+    inputTokenCost: 0.05 / 1_000_000,
+    outputTokenCost: 0.08 / 1_000_000,
+  },
+  "openai/gpt-oss-20b": {
+    inputTokenCost: 0.1 / 1_000_000,
+    outputTokenCost: 0.5 / 1_000_000,
+  },
+};
+
 const MONTHLY_COST_LIMIT = 2.0;
 
 export class AIUsage {
-  static async trackUsage(customerId: string, usage: Usage) {
+  static async trackUsage(
+    customerId: string,
+    modelId: ModelId,
+    usage: LanguageModelUsage,
+  ) {
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+
+    const modelCost = MODEL_COSTS[modelId];
+    const spend =
+      (usage.inputTokens ?? 0) * modelCost.inputTokenCost +
+      (usage.outputTokens ?? 0) * modelCost.outputTokenCost;
 
     await db
       .insert(aiRequests)
@@ -21,15 +42,17 @@ export class AIUsage {
         customerId,
         month: currentMonth,
         requestCount: 1,
-        inputTokens: usage.promptTokens,
-        outputTokens: usage.completionTokens,
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+        totalSpent: spend,
       })
       .onConflictDoUpdate({
         target: [aiRequests.customerId, aiRequests.month],
         set: {
           requestCount: sql`${aiRequests.requestCount} + 1`,
-          inputTokens: sql`${aiRequests.inputTokens} + ${usage.promptTokens}`,
-          outputTokens: sql`${aiRequests.outputTokens} + ${usage.completionTokens}`,
+          inputTokens: sql`${aiRequests.inputTokens} + ${usage.inputTokens}`,
+          outputTokens: sql`${aiRequests.outputTokens} + ${usage.outputTokens}`,
+          totalSpent: sql`${aiRequests.totalSpent} + ${spend}`,
         },
       });
   }
@@ -39,8 +62,7 @@ export class AIUsage {
 
     const usage = db
       .select({
-        inputTokens: aiRequests.inputTokens,
-        outputTokens: aiRequests.outputTokens,
+        totalSpent: aiRequests.totalSpent,
       })
       .from(aiRequests)
       .where(
@@ -55,9 +77,6 @@ export class AIUsage {
       return false;
     }
 
-    const totalCost =
-      usage.inputTokens * INPUT_TOKEN_COST +
-      usage.outputTokens * OUTPUT_TOKEN_COST;
-    return totalCost >= MONTHLY_COST_LIMIT;
+    return usage.totalSpent >= MONTHLY_COST_LIMIT;
   }
 }

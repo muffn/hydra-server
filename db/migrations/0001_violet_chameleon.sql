@@ -1,0 +1,1 @@
+ALTER TABLE `ai_requests` ADD `total_spent` real DEFAULT 0 NOT NULL;

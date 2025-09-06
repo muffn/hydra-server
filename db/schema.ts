@@ -5,6 +5,7 @@ import {
   integer,
   index,
   uniqueIndex,
+  real,
 } from "drizzle-orm/sqlite-core";
 import type { TaskType } from "../tasks/TaskMap";
 
@@ -94,6 +95,7 @@ export const aiRequests = sqliteTable(
     requestCount: integer("request_count").notNull().default(0),
     inputTokens: integer("input_tokens").notNull().default(0),
     outputTokens: integer("output_tokens").notNull().default(0),
+    totalSpent: real("total_spent").notNull().default(0),
     createdAt: text()
       .notNull()
       .default(sql`(CURRENT_TIMESTAMP)`),
