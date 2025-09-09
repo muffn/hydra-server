@@ -24,12 +24,13 @@ type ProxyResponseItem = {
 };
 
 const PROXY_UPDATE_INTERVAL = 1000 * 60 * 60 * 1; // 1 hour
-const RETRY_BAD_PROXY_INTERVAL = 1000 * 60 * 30; // 30 minutes
+const RETRY_BAD_PROXY_INTERVAL = 1000 * 60 * 2; // 2 hours
 
 export default class Proxy {
   private static proxies: string[] = [];
   private static badProxies: { [address: string]: number } = {};
   private static lastUpdateAt: number = 0;
+  private static nextProxyIndex: number = 0;
 
   static async getProxies() {
     if (
@@ -46,10 +47,19 @@ export default class Proxy {
       },
     );
     const res = (await response.json()) as ProxyResponse;
-    this.proxies = res.results.map(
+    const freshProxyList = res.results.map(
       (proxy) =>
         `http://${proxy.username}:${proxy.password}@${proxy.proxy_address}:${proxy.port}`,
     );
+    this.proxies = freshProxyList.filter(
+      (proxy) => this.badProxies[proxy] === undefined,
+    );
+    for (const proxy of Object.keys(this.badProxies)) {
+      if (!freshProxyList.includes(proxy)) {
+        // Proxy no longer exists, remove from bad proxies
+        delete this.badProxies[proxy];
+      }
+    }
     this.badProxies = {};
     this.lastUpdateAt = Date.now();
     return this.proxies;
@@ -62,7 +72,9 @@ export default class Proxy {
     if (this.proxies.length === 0) {
       throw new Error("No good proxies available");
     }
-    return this.proxies[Math.floor(Math.random() * this.proxies.length)];
+    const proxy = this.proxies[this.nextProxyIndex];
+    this.nextProxyIndex = (this.nextProxyIndex + 1) % this.proxies.length;
+    return proxy;
   }
 
   static async handleBadProxy(proxy: string) {
