@@ -8,7 +8,7 @@ WORKDIR /app
 RUN apk add --no-cache git
 
 # Clone the repository
-RUN git clone https://github.com/dmilin1/hydra-server.git hydra-server
+RUN git clone https://github.com/muffn/hydra-server.git hydra-server
 
 # Change into the repository directory
 WORKDIR /app/hydra-server
