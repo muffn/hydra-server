@@ -1,44 +1,40 @@
-# syntax = docker/dockerfile:1
+# Use Bun as base image
+FROM oven/bun:1.2.5-alpine
 
-# Adjust BUN_VERSION as desired
-ARG BUN_VERSION=1.2.5
-FROM oven/bun:${BUN_VERSION}-slim AS base
-
-LABEL fly_launch_runtime="Bun"
-
-# Bun app lives here
+# Set working directory
 WORKDIR /app
 
-# Set production environment
-ENV NODE_ENV="production"
+# Install git for cloning
+RUN apk add --no-cache git
 
+# Clone the repository
+RUN git clone https://github.com/dmilin1/hydra-server.git hydra-server
 
-# Throw-away build stage to reduce size of final image
-FROM base AS build
+# Change into the repository directory
+WORKDIR /app/hydra-server
 
-# Install packages needed to build node modules
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential pkg-config python-is-python3
+# Install backend dependencies
+RUN bun install
 
-# Copy application code first
-COPY . .
-
-# Build frontend
-WORKDIR /app/frontend
+# Install frontend dependencies and build
+WORKDIR /app/hydra-server/frontend
 RUN bun install
 RUN bun run build
 
-# Clean up and install dependencies
-WORKDIR /app
-RUN rm -rf /app/frontend
-RUN bun install
+# Return to root directory
+WORKDIR /app/hydra-server
 
-# Final stage for app image
-FROM base
+# Clean up unnecessary files to reduce image size
+RUN rm -rf .git .github .gitignore README.md .prettierrc .prettierignore eslint.config.js tailwind.config.js fly.toml .dockerignore
+RUN rm -rf frontend/node_modules frontend/src frontend/public frontend/package.json frontend/vite.config.ts frontend/tsconfig.json frontend/index.html
+RUN rm -rf node_modules/.cache
 
-# Copy built application
-COPY --from=build /app /app
-
-# Start the server by default, this can be overwritten at runtime
+# Expose port
 EXPOSE 3000
-CMD [ "bun", "index.ts" ]
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV IS_CUSTOM_SERVER=true
+
+# Start the application
+CMD ["bun", "run", "start"]
