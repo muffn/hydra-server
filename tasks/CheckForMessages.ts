@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { decrypt } from "../utils/crypto";
 import PushNotifications from "../services/PushNotifications";
 import Proxy from "../services/Proxy";
+import { generateUserAgent } from "../utils/userAgent";
 
 type InboxItem = CommentReply | Message;
 
@@ -58,6 +59,7 @@ export default class CheckForMessages extends Task<
       {
         headers: {
           cookie: `${session.name}=${session.value}`,
+          "User-Agent": generateUserAgent(),
         },
       },
     );
